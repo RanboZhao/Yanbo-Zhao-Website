@@ -62,9 +62,41 @@ app.post('/api/contact', async (req, res) => {
         const autorespondMail = {
             from: fromEmail,
             to: email,
-            subject: 'Thanks for contacting me!',
-            text: `Thanks for contacting me! I will get back to you soon!\n\nBest,\nYanbo`,
-            html: `<p>Thanks for contacting me! I will get back to you soon!</p><p>Best,<br>Yanbo</p>`,
+            subject: 'Thanks for reaching out!',
+            text: `Hey ${name},\n\nThanks for contacting me! I appreciate you taking the time to reach out.\n\nI've received your message and will get back to you within 24-48 hours. In the meantime, feel free to check out my latest projects on GitHub or connect with me on LinkedIn.\n\nLooking forward to our conversation!\n\nBest regards,\nYanbo Zhao\nData Science Student & Software Engineer`,
+            html: `
+                <div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #f8fafc; border-radius: 8px;">
+                    <div style="background-color: white; padding: 30px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
+                        <h2 style="color: #1e293b; margin-bottom: 20px; font-size: 24px; font-weight: 600;">Hey ${name},</h2>
+                        
+                        <p style="color: #475569; line-height: 1.6; margin-bottom: 16px; font-size: 16px;">
+                            Thanks for contacting me! I appreciate you taking the time to reach out.
+                        </p>
+                        
+                        <p style="color: #475569; line-height: 1.6; margin-bottom: 16px; font-size: 16px;">
+                            I've received your message and will get back to you within <strong>24-48 hours</strong>. In the meantime, feel free to check out my latest projects on 
+                            <a href="https://github.com/RanboZhao" style="color: #3b82f6; text-decoration: none;">GitHub</a> or connect with me on 
+                            <a href="https://www.linkedin.com/in/yanbo-zhao716" style="color: #3b82f6; text-decoration: none;">LinkedIn</a>.
+                        </p>
+                        
+                        <p style="color: #475569; line-height: 1.6; margin-bottom: 24px; font-size: 16px;">
+                            Looking forward to our conversation!
+                        </p>
+                        
+                        <div style="border-top: 1px solid #e2e8f0; padding-top: 20px; margin-top: 24px;">
+                            <p style="color: #1e293b; margin-bottom: 4px; font-size: 16px; font-weight: 600;">Best regards,</p>
+                            <p style="color: #3b82f6; margin-bottom: 2px; font-size: 18px; font-weight: 700;">Yanbo Zhao</p>
+                            <p style="color: #64748b; margin: 0; font-size: 14px; font-style: italic;">Data Science Student & Software Engineer</p>
+                        </div>
+                    </div>
+                    
+                    <div style="text-align: center; margin-top: 20px;">
+                        <p style="color: #94a3b8; font-size: 12px; margin: 0;">
+                            This is an automated response. Please do not reply to this email.
+                        </p>
+                    </div>
+                </div>
+            `,
         };
 
         await transporter.sendMail(ownerMail);
