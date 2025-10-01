@@ -182,6 +182,7 @@ class ContactForm {
 
     async handleSubmit(e) {
         e.preventDefault();
+        e.stopPropagation();
         
         const formData = new FormData(this.form);
         const submitButton = this.form.querySelector('button[type="submit"]');
@@ -190,6 +191,8 @@ class ContactForm {
         try {
             submitButton.textContent = 'Sending...';
             submitButton.disabled = true;
+            
+            console.log('EmailJS sending with service:', this.serviceID);
             
             // Get form data
             const templateParams = {
@@ -201,9 +204,11 @@ class ContactForm {
             };
 
             // Send email using your EmailJS template (handles both notification and auto-reply)
-            await emailjs.send(this.serviceID, this.notificationTemplateID, templateParams);
+            console.log('Sending with params:', templateParams);
+            const result = await emailjs.send(this.serviceID, this.notificationTemplateID, templateParams);
+            console.log('EmailJS result:', result);
 
-            this.showMessage('Message sent successfully! You should receive a confirmation email shortly.', 'success');
+            this.showMessage('Message sent successfully via EmailJS! You should receive a confirmation email shortly.', 'success');
             this.form.reset();
         } catch (error) {
             console.error('EmailJS error:', error);
