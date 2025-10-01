@@ -158,36 +158,65 @@ class ScrollAnimations {
     }
 }
 
+// EmailJS Configuration (secure)
+const EMAIL_CONFIG = {
+    serviceID: 'service_oyiv05q',
+    templateID: 'template_bz2rt8k',
+    publicKey: 'tFwh-FOup7w2Dpikn',
+    userID: 'tFwh-FOup7w2Dpikn' // EmailJS user ID (same as public key)
+};
+
 // Contact Form Handler
 class ContactForm {
     constructor() {
         this.form = document.getElementById('contact-form');
+        this.isEmailJSReady = false;
         if (this.form) {
             this.init();
         }
     }
 
     init() {
-        // Initialize EmailJS with your credentials
-        this.serviceID = 'service_oyiv05q';
-        this.notificationTemplateID = 'template_bz2rt8k';
-        this.autoReplyTemplateID = 'template_bz2rt8k';
-        this.publicKey = 'tFwh-FOup7w2Dpikn';
-        
+        // Validate configuration
+        if (!this.validateConfig()) {
+            this.showMessage('Contact form configuration error. Please contact the site administrator.', 'error');
+            return;
+        }
+
+        // Wait for EmailJS to load
+        this.initializeEmailJS();
+    }
+
+    validateConfig() {
+        return EMAIL_CONFIG.serviceID && 
+               EMAIL_CONFIG.templateID && 
+               EMAIL_CONFIG.publicKey &&
+               EMAIL_CONFIG.serviceID !== 'YOUR_SERVICE_ID';
+    }
+
+    async initializeEmailJS() {
         // Check if EmailJS is loaded
         if (typeof emailjs === 'undefined') {
             console.error('EmailJS library not loaded!');
-            this.showMessage('EmailJS library failed to load. Please refresh the page.', 'error');
+            this.showMessage('Unable to load email service. Please refresh the page.', 'error');
             return;
         }
-        
-        // Initialize EmailJS
+
         try {
-            emailjs.init(this.publicKey);
+            // Initialize EmailJS with user ID
+            emailjs.init({
+                publicKey: EMAIL_CONFIG.publicKey,
+                blockHeadless: true, // Block headless browsers for security
+                limitRate: {
+                    throttle: 10000, // 10 seconds between requests
+                }
+            });
+            
+            this.isEmailJSReady = true;
             console.log('EmailJS initialized successfully');
         } catch (error) {
             console.error('EmailJS initialization failed:', error);
-            this.showMessage('EmailJS initialization failed. Please refresh the page.', 'error');
+            this.showMessage('Email service initialization failed. Please try again later.', 'error');
             return;
         }
         
@@ -206,36 +235,85 @@ class ContactForm {
             submitButton.textContent = 'Sending...';
             submitButton.disabled = true;
             
-            // Check if EmailJS is still available
-            if (typeof emailjs === 'undefined') {
-                throw new Error('EmailJS library not available');
+            // Security checks
+            if (!this.isEmailJSReady) {
+                throw new Error('Email service not ready');
             }
             
-            console.log('EmailJS sending with service:', this.serviceID);
+            if (typeof emailjs === 'undefined') {
+                throw new Error('Email service unavailable');
+            }
             
-            // Get form data
-            const templateParams = {
-                from_name: formData.get('name'),
-                reply_to: formData.get('email'),
-                subject: formData.get('subject'),
-                message: formData.get('message'),
+            // Rate limiting check
+            if (this.lastSubmission && Date.now() - this.lastSubmission < 10000) {
+                throw new Error('Please wait before sending another message');
+            }
+            
+            console.log('Sending email via EmailJS...');
+            
+            // Sanitize and validate form data
+            const templateParams = this.sanitizeFormData({
+                from_name: formData.get('name')?.trim(),
+                reply_to: formData.get('email')?.trim(),
+                subject: formData.get('subject')?.trim(),
+                message: formData.get('message')?.trim(),
                 to_email: 'yanbozhao716@gmail.com'
-            };
+            });
 
-            // Send email using your EmailJS template (handles both notification and auto-reply)
-            console.log('Sending with params:', templateParams);
-            const result = await emailjs.send(this.serviceID, this.notificationTemplateID, templateParams);
-            console.log('EmailJS result:', result);
+            // Validate required fields
+            if (!templateParams.from_name || !templateParams.reply_to || 
+                !templateParams.subject || !templateParams.message) {
+                throw new Error('All fields are required');
+            }
 
-            this.showMessage('Message sent successfully via EmailJS! You should receive a confirmation email shortly.', 'success');
+            // Send email using EmailJS
+            console.log('Sending email...');
+            const result = await emailjs.send(
+                EMAIL_CONFIG.serviceID, 
+                EMAIL_CONFIG.templateID, 
+                templateParams
+            );
+            
+            console.log('Email sent successfully:', result.status);
+            this.lastSubmission = Date.now();
+
+            this.showMessage('Message sent successfully! Thank you for contacting me.', 'success');
             this.form.reset();
         } catch (error) {
-            console.error('EmailJS error:', error);
-            this.showMessage('Failed to send message. Please try again.', 'error');
+            console.error('Email sending error:', error.message || error);
+            
+            // User-friendly error messages
+            let errorMessage = 'Failed to send message. ';
+            if (error.message?.includes('rate limit') || error.message?.includes('wait')) {
+                errorMessage += 'Please wait before sending another message.';
+            } else if (error.message?.includes('network') || error.message?.includes('fetch')) {
+                errorMessage += 'Please check your internet connection and try again.';
+            } else {
+                errorMessage += 'Please try again later.';
+            }
+            
+            this.showMessage(errorMessage, 'error');
         } finally {
             submitButton.textContent = originalText;
             submitButton.disabled = false;
         }
+    }
+
+    sanitizeFormData(data) {
+        // Basic XSS protection and data sanitization
+        const sanitized = {};
+        for (const [key, value] of Object.entries(data)) {
+            if (typeof value === 'string') {
+                // Remove HTML tags and limit length
+                sanitized[key] = value
+                    .replace(/<[^>]*>/g, '') // Remove HTML tags
+                    .replace(/[<>'"&]/g, '') // Remove potentially dangerous characters
+                    .substring(0, key === 'message' ? 2000 : 200); // Limit length
+            } else {
+                sanitized[key] = value;
+            }
+        }
+        return sanitized;
     }
 
     showMessage(message, type) {
