@@ -174,8 +174,22 @@ class ContactForm {
         this.autoReplyTemplateID = 'template_bz2rt8k';
         this.publicKey = 'tFwh-FOup7w2Dpikn';
         
+        // Check if EmailJS is loaded
+        if (typeof emailjs === 'undefined') {
+            console.error('EmailJS library not loaded!');
+            this.showMessage('EmailJS library failed to load. Please refresh the page.', 'error');
+            return;
+        }
+        
         // Initialize EmailJS
-        emailjs.init(this.publicKey);
+        try {
+            emailjs.init(this.publicKey);
+            console.log('EmailJS initialized successfully');
+        } catch (error) {
+            console.error('EmailJS initialization failed:', error);
+            this.showMessage('EmailJS initialization failed. Please refresh the page.', 'error');
+            return;
+        }
         
         this.form.addEventListener('submit', (e) => this.handleSubmit(e));
     }
@@ -191,6 +205,11 @@ class ContactForm {
         try {
             submitButton.textContent = 'Sending...';
             submitButton.disabled = true;
+            
+            // Check if EmailJS is still available
+            if (typeof emailjs === 'undefined') {
+                throw new Error('EmailJS library not available');
+            }
             
             console.log('EmailJS sending with service:', this.serviceID);
             
@@ -257,7 +276,11 @@ document.addEventListener('DOMContentLoaded', () => {
     new ThemeManager();
     new NavigationManager();
     new ScrollAnimations();
-    new ContactForm();
+    
+    // Initialize ContactForm with a small delay to ensure EmailJS loads
+    setTimeout(() => {
+        new ContactForm();
+    }, 100);
 
     // Add fade-in animation to hero section
     const heroContent = document.querySelector('.hero-content');
