@@ -610,6 +610,7 @@ section {
     display: flex;
     flex-direction: column;
     gap: 2rem;
+    align-items: center; /* center contents in left column */
 }
 
 .contact-item {
@@ -636,20 +637,21 @@ section {
 
 .social-links {
     display: flex;
-    gap: 1rem;
-    margin-top: 1rem;
+    gap: 1.25rem;
+    margin-top: 1.5rem;
+    justify-content: center; /* center icons */
 }
 
 .social-links a {
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 3rem;
-    height: 3rem;
+    width: 3.75rem;   /* bigger */
+    height: 3.75rem;  /* bigger */
     background: var(--bg-primary);
     color: var(--text-secondary);
     border-radius: 50%;
-    font-size: 1.2rem;
+    font-size: 1.35rem; /* bigger icon */
     transition: all 0.3s ease;
     border: 1px solid var(--border-color);
 }

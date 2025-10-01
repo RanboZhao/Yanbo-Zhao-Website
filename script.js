@@ -168,6 +168,7 @@ class ContactForm {
     }
 
     init() {
+        this.endpoint = this.form.dataset.endpoint || '';
         this.form.addEventListener('submit', (e) => this.handleSubmit(e));
     }
 
@@ -182,9 +183,26 @@ class ContactForm {
             submitButton.textContent = 'Sending...';
             submitButton.disabled = true;
             
-            // Simulate form submission (replace with actual endpoint)
-            await new Promise(resolve => setTimeout(resolve, 1500));
-            
+            if (!this.endpoint) {
+                // Not configured yet
+                this.showMessage('Contact form is not configured. Please set a form endpoint.', 'error');
+                return;
+            }
+
+            // Convert to JSON for services like Formspree
+            const payload = Object.fromEntries(formData.entries());
+
+            const res = await fetch(this.endpoint, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+
+            if (!res.ok) {
+                const text = await res.text().catch(() => '');
+                throw new Error(text || `Request failed with ${res.status}`);
+            }
+
             this.showMessage('Message sent successfully!', 'success');
             this.form.reset();
         } catch (error) {
