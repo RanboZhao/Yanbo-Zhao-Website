@@ -386,31 +386,6 @@ section {
     margin-bottom: 0.5rem;
 }
 
-/* Resume Download Section */
-.resume-download {
-    text-align: center;
-    margin-top: 3rem;
-    padding: 2rem;
-    background: var(--bg-secondary);
-    border-radius: 0.75rem;
-    border: 1px solid var(--border-color);
-}
-
-.resume-text {
-    font-size: 1.1rem;
-    color: var(--text-secondary);
-    margin-bottom: 1.5rem;
-    font-weight: 500;
-}
-
-.resume-btn {
-    font-size: 1rem;
-    padding: 0.875rem 2rem;
-}
-
-.resume-btn i {
-    margin-right: 0.5rem;
-}
 
 /* Skills Section */
 .skills {

@@ -51,3 +51,11 @@ tmp/
 # Project specific
 Yanbo Zhao Resume.pdf
 assets/images/
+
+# Server files (not needed for Squarespace)
+server.js
+.env
+.env.example
+package.json
+package-lock.json
+node_modules/
