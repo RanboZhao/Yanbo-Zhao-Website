@@ -158,12 +158,11 @@ class ScrollAnimations {
     }
 }
 
-// EmailJS Configuration (secure)
-const EMAIL_CONFIG = {
+// EmailJS Configuration
+const EMAILJS_CONFIG = {
     serviceID: 'service_oyiv05q',
     templateID: 'template_bz2rt8k',
-    publicKey: 'tFwh-FOup7w2Dpikn',
-    userID: 'tFwh-FOup7w2Dpikn' // EmailJS user ID (same as public key)
+    publicKey: 'tFwh-FOup7w2Dpikn'
 };
 
 // Contact Form Handler
@@ -171,56 +170,73 @@ class ContactForm {
     constructor() {
         this.form = document.getElementById('contact-form');
         this.isEmailJSReady = false;
+        this.initializationAttempts = 0;
+        this.maxInitAttempts = 3;
+        
         if (this.form) {
             this.init();
         }
     }
 
-    init() {
-        // Validate configuration
-        if (!this.validateConfig()) {
-            this.showMessage('Contact form configuration error. Please contact the site administrator.', 'error');
-            return;
-        }
-
-        // Wait for EmailJS to load
-        this.initializeEmailJS();
+    async init() {
+        console.log('Initializing ContactForm...');
+        
+        // Wait for EmailJS to be available
+        await this.waitForEmailJS();
+        
+        // Initialize EmailJS
+        await this.initializeEmailJS();
+        
+        // Set up form listener
+        this.form.addEventListener('submit', (e) => this.handleSubmit(e));
+        
+        console.log('ContactForm initialization complete');
     }
 
-    validateConfig() {
-        return EMAIL_CONFIG.serviceID && 
-               EMAIL_CONFIG.templateID && 
-               EMAIL_CONFIG.publicKey &&
-               EMAIL_CONFIG.serviceID !== 'YOUR_SERVICE_ID';
+    async waitForEmailJS() {
+        return new Promise((resolve, reject) => {
+            const checkEmailJS = () => {
+                if (typeof emailjs !== 'undefined') {
+                    console.log('EmailJS library loaded successfully');
+                    resolve();
+                } else if (this.initializationAttempts < this.maxInitAttempts) {
+                    this.initializationAttempts++;
+                    console.log(`Waiting for EmailJS... attempt ${this.initializationAttempts}`);
+                    setTimeout(checkEmailJS, 500);
+                } else {
+                    console.error('EmailJS library failed to load after multiple attempts');
+                    reject(new Error('EmailJS library not available'));
+                }
+            };
+            checkEmailJS();
+        });
     }
 
     async initializeEmailJS() {
-        // Check if EmailJS is loaded
-        if (typeof emailjs === 'undefined') {
-            console.error('EmailJS library not loaded!');
-            this.showMessage('Unable to load email service. Please refresh the page.', 'error');
-            return;
-        }
-
         try {
-            // Initialize EmailJS with user ID
+            console.log('Initializing EmailJS with config:', {
+                serviceID: EMAILJS_CONFIG.serviceID,
+                templateID: EMAILJS_CONFIG.templateID,
+                publicKey: EMAILJS_CONFIG.publicKey.substring(0, 8) + '...'
+            });
+
+            // Initialize EmailJS with the new v4 syntax
             emailjs.init({
-                publicKey: EMAIL_CONFIG.publicKey,
-                blockHeadless: true, // Block headless browsers for security
+                publicKey: EMAILJS_CONFIG.publicKey,
+                blockHeadless: true,
                 limitRate: {
                     throttle: 10000, // 10 seconds between requests
                 }
             });
-            
+
             this.isEmailJSReady = true;
             console.log('EmailJS initialized successfully');
+            
         } catch (error) {
             console.error('EmailJS initialization failed:', error);
-            this.showMessage('Email service initialization failed. Please try again later.', 'error');
-            return;
+            this.isEmailJSReady = false;
+            throw error;
         }
-        
-        this.form.addEventListener('submit', (e) => this.handleSubmit(e));
     }
 
     async handleSubmit(e) {
@@ -235,85 +251,119 @@ class ContactForm {
             submitButton.textContent = 'Sending...';
             submitButton.disabled = true;
             
-            // Security checks
+            // Check if EmailJS is ready
             if (!this.isEmailJSReady) {
-                throw new Error('Email service not ready');
+                console.log('EmailJS not ready, attempting to reinitialize...');
+                await this.initializeEmailJS();
             }
             
-            if (typeof emailjs === 'undefined') {
-                throw new Error('Email service unavailable');
-            }
+            // Validate form data
+            const templateParams = this.validateAndSanitizeFormData(formData);
             
-            // Rate limiting check
-            if (this.lastSubmission && Date.now() - this.lastSubmission < 10000) {
-                throw new Error('Please wait before sending another message');
-            }
-            
-            console.log('Sending email via EmailJS...');
-            
-            // Sanitize and validate form data
-            const templateParams = this.sanitizeFormData({
-                from_name: formData.get('name')?.trim(),
-                reply_to: formData.get('email')?.trim(),
-                subject: formData.get('subject')?.trim(),
-                message: formData.get('message')?.trim(),
-                to_email: 'yanbozhao716@gmail.com'
+            console.log('Sending email with EmailJS...');
+            console.log('Service ID:', EMAILJS_CONFIG.serviceID);
+            console.log('Template ID:', EMAILJS_CONFIG.templateID);
+            console.log('Template params:', {
+                from_name: templateParams.from_name,
+                reply_to: templateParams.reply_to,
+                subject: templateParams.subject,
+                message: templateParams.message.substring(0, 50) + '...'
             });
 
-            // Validate required fields
-            if (!templateParams.from_name || !templateParams.reply_to || 
-                !templateParams.subject || !templateParams.message) {
-                throw new Error('All fields are required');
-            }
-
             // Send email using EmailJS
-            console.log('Sending email...');
             const result = await emailjs.send(
-                EMAIL_CONFIG.serviceID, 
-                EMAIL_CONFIG.templateID, 
+                EMAILJS_CONFIG.serviceID,
+                EMAILJS_CONFIG.templateID,
                 templateParams
             );
             
-            console.log('Email sent successfully:', result.status);
-            this.lastSubmission = Date.now();
-
-            this.showMessage('Message sent successfully! Thank you for contacting me.', 'success');
-            this.form.reset();
-        } catch (error) {
-            console.error('Email sending error:', error.message || error);
+            console.log('EmailJS send result:', result);
             
-            // User-friendly error messages
-            let errorMessage = 'Failed to send message. ';
-            if (error.message?.includes('rate limit') || error.message?.includes('wait')) {
-                errorMessage += 'Please wait before sending another message.';
-            } else if (error.message?.includes('network') || error.message?.includes('fetch')) {
-                errorMessage += 'Please check your internet connection and try again.';
+            if (result.status === 200) {
+                this.showMessage('Message sent successfully! Thank you for contacting me.', 'success');
+                this.form.reset();
             } else {
-                errorMessage += 'Please try again later.';
+                throw new Error(`EmailJS returned status: ${result.status}`);
+            }
+            
+        } catch (error) {
+            console.error('Email sending error:', error);
+            
+            // Detailed error logging
+            console.log('Error details:', {
+                message: error.message,
+                status: error.status,
+                text: error.text,
+                name: error.name
+            });
+            
+            // User-friendly error message
+            let errorMessage = 'Failed to send message. ';
+            
+            if (error.message?.includes('network') || error.message?.includes('fetch')) {
+                errorMessage += 'Please check your internet connection and try again.';
+            } else if (error.status === 400) {
+                errorMessage += 'Please check that all fields are filled correctly.';
+            } else if (error.status === 403) {
+                errorMessage += 'Service temporarily unavailable. Please try again later.';
+            } else {
+                errorMessage += 'Please try again in a few moments.';
             }
             
             this.showMessage(errorMessage, 'error');
+            
         } finally {
             submitButton.textContent = originalText;
             submitButton.disabled = false;
         }
     }
 
-    sanitizeFormData(data) {
-        // Basic XSS protection and data sanitization
-        const sanitized = {};
-        for (const [key, value] of Object.entries(data)) {
-            if (typeof value === 'string') {
-                // Remove HTML tags and limit length
-                sanitized[key] = value
-                    .replace(/<[^>]*>/g, '') // Remove HTML tags
-                    .replace(/[<>'"&]/g, '') // Remove potentially dangerous characters
-                    .substring(0, key === 'message' ? 2000 : 200); // Limit length
-            } else {
-                sanitized[key] = value;
-            }
+    validateAndSanitizeFormData(formData) {
+        const name = formData.get('name')?.trim();
+        const email = formData.get('email')?.trim();
+        const subject = formData.get('subject')?.trim();
+        const message = formData.get('message')?.trim();
+        
+        // Validation
+        if (!name || name.length < 2) {
+            throw new Error('Please enter a valid name (at least 2 characters)');
         }
-        return sanitized;
+        
+        if (!email || !this.isValidEmail(email)) {
+            throw new Error('Please enter a valid email address');
+        }
+        
+        if (!subject || subject.length < 3) {
+            throw new Error('Please enter a subject (at least 3 characters)');
+        }
+        
+        if (!message || message.length < 10) {
+            throw new Error('Please enter a message (at least 10 characters)');
+        }
+        
+        // Sanitization
+        return {
+            from_name: this.sanitizeInput(name),
+            reply_to: email, // Email doesn't need HTML sanitization
+            subject: this.sanitizeInput(subject),
+            message: this.sanitizeInput(message),
+            to_email: 'yanbozhao716@gmail.com'
+        };
+    }
+
+    isValidEmail(email) {
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        return emailRegex.test(email);
+    }
+
+    sanitizeInput(input) {
+        if (typeof input !== 'string') return input;
+        
+        return input
+            .replace(/<[^>]*>/g, '') // Remove HTML tags
+            .replace(/[<>'"&]/g, '') // Remove potentially dangerous characters
+            .substring(0, 2000) // Limit length
+            .trim();
     }
 
     showMessage(message, type) {
@@ -349,16 +399,19 @@ class ContactForm {
 }
 
 // Initialize everything when DOM is loaded
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
     // Initialize all components
     new ThemeManager();
     new NavigationManager();
     new ScrollAnimations();
     
-    // Initialize ContactForm with a small delay to ensure EmailJS loads
-    setTimeout(() => {
-        new ContactForm();
-    }, 100);
+    // Initialize ContactForm with proper error handling
+    try {
+        const contactForm = new ContactForm();
+        console.log('All components initialized successfully');
+    } catch (error) {
+        console.error('Failed to initialize ContactForm:', error);
+    }
 
     // Add fade-in animation to hero section
     const heroContent = document.querySelector('.hero-content');

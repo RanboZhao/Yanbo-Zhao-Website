@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>EmailJS Test</title>
+    <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
+</head>
+<body>
+    <h1>EmailJS Connection Test</h1>
+    <button onclick="testEmailJS()">Test EmailJS Connection</button>
+    <div id="result"></div>
+
+    <script>
+        async function testEmailJS() {
+            const result = document.getElementById('result');
+            result.innerHTML = 'Testing...';
+            
+            try {
+                // Check if EmailJS loaded
+                if (typeof emailjs === 'undefined') {
+                    throw new Error('EmailJS library not loaded');
+                }
+                
+                result.innerHTML = 'EmailJS library loaded ✓<br>Initializing...';
+                
+                // Initialize EmailJS with v4 syntax
+                emailjs.init({
+                    publicKey: 'tFwh-FOup7w2Dpikn',
+                    blockHeadless: true,
+                    limitRate: {
+                        throttle: 10000,
+                    }
+                });
+                
+                result.innerHTML = 'EmailJS library loaded ✓<br>Initialized ✓<br>Sending test email...';
+                
+                // Test send with minimal data
+                const response = await emailjs.send(
+                    'service_oyiv05q',
+                    'template_bz2rt8k',
+                    {
+                        from_name: 'Test User',
+                        reply_to: 'test@example.com',
+                        subject: 'Test Subject',
+                        message: 'This is a test message',
+                        to_email: 'yanbozhao716@gmail.com'
+                    }
+                );
+                
+                result.innerHTML = `✅ SUCCESS: ${response.status} - ${response.text}`;
+                result.style.color = 'green';
+            } catch (error) {
+                result.innerHTML = `❌ ERROR: ${error.message || error}<br><br>Check console for details`;
+                result.style.color = 'red';
+                console.error('Detailed EmailJS error:', error);
+                
+                // Log more details
+                console.log('EmailJS available:', typeof emailjs !== 'undefined');
+                console.log('Service ID:', 'service_oyiv05q');
+                console.log('Template ID:', 'template_bz2rt8k');
+                console.log('Public Key:', 'tFwh-FOup7w2Dpikn');
+            }
+        }
+    </script>
+</body>
+</html>
