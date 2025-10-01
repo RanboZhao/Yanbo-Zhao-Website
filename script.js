@@ -168,7 +168,15 @@ class ContactForm {
     }
 
     init() {
-        this.endpoint = this.form.dataset.endpoint || '';
+        // Initialize EmailJS with your credentials
+        this.serviceID = 'service_oyiv05q';
+        this.notificationTemplateID = 'template_bz2rt8k';
+        this.autoReplyTemplateID = 'template_bz2rt8k';
+        this.publicKey = 'tFwh-FOup7w2Dpikn';
+        
+        // Initialize EmailJS
+        emailjs.init(this.publicKey);
+        
         this.form.addEventListener('submit', (e) => this.handleSubmit(e));
     }
 
@@ -183,29 +191,22 @@ class ContactForm {
             submitButton.textContent = 'Sending...';
             submitButton.disabled = true;
             
-            if (!this.endpoint) {
-                // Not configured yet
-                this.showMessage('Contact form is not configured. Please set a form endpoint.', 'error');
-                return;
-            }
+            // Get form data
+            const templateParams = {
+                from_name: formData.get('name'),
+                reply_to: formData.get('email'),
+                subject: formData.get('subject'),
+                message: formData.get('message'),
+                to_email: 'yanbozhao716@gmail.com'
+            };
 
-            // Convert to JSON for services like Formspree
-            const payload = Object.fromEntries(formData.entries());
+            // Send email using your EmailJS template (handles both notification and auto-reply)
+            await emailjs.send(this.serviceID, this.notificationTemplateID, templateParams);
 
-            const res = await fetch(this.endpoint, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload)
-            });
-
-            if (!res.ok) {
-                const text = await res.text().catch(() => '');
-                throw new Error(text || `Request failed with ${res.status}`);
-            }
-
-            this.showMessage('Message sent successfully!', 'success');
+            this.showMessage('Message sent successfully! You should receive a confirmation email shortly.', 'success');
             this.form.reset();
         } catch (error) {
+            console.error('EmailJS error:', error);
             this.showMessage('Failed to send message. Please try again.', 'error');
         } finally {
             submitButton.textContent = originalText;
